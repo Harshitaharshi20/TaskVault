@@ -4,7 +4,8 @@
   "description": "NestJS Todo Backend with Dual Auth (Custom JWT + Supabase)",
   "scripts": {
     "build": "nest build",
-    "start": "node dist/main",
+    "start": "node dist/main.js",
+    "start:prod": "node dist/main.js",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "prisma:generate": "prisma generate",
