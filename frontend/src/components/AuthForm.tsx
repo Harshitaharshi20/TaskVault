@@ -33,6 +33,16 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (loading) return;
+
+    // Frontend validation for CUSTOM auth registration
+    if (!isLogin && activeTab === 'custom') {
+      const passwordRegex = /(?=.*[A-Z])(?=.*[0-9])/;
+      if (!passwordRegex.test(password)) {
+        toast.error('Password must contain at least one uppercase letter and one number');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (activeTab === 'custom') {
@@ -64,6 +74,16 @@ export default function AuthForm({ mode }: AuthFormProps) {
       setOauthLoading(null);
     }
   };
+
+  // Check for session expired error in URL
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('error') === 'session_expired') {
+        toast.error('Your session has expired. Please log in again.', { id: 'session-expired' });
+      }
+    }
+  }, []);
 
   return (
     <div className="glass-card w-full max-w-md p-8 animate-in">

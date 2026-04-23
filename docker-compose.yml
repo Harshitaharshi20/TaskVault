@@ -1,19 +1,14 @@
 version: '3.9'
 
-# ─────────────────────────────────────────────────────────────────
-# docker-compose.yml — spins up a local PostgreSQL instance
-# Usage:  docker compose up -d
-# ─────────────────────────────────────────────────────────────────
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: todo_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER:     postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB:       todo_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: smartharshi20
+      POSTGRES_DB: todo_db
     ports:
       - '5432:5432'
     volumes:
@@ -23,6 +18,41 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: todo_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '4000:4000'
+    environment:
+      - DATABASE_URL=postgresql://postgres:smartharshi20@postgres:5432/todo_db
+      - JWT_SECRET=mytaskvault
+      - SUPABASE_JWT_SECRET=wh9gN+n0syo2dVCvmWVK3pw1FdE5udz5aNNLXQ64sEhYbRWHSijWbdu+oLVu4WcMy/A74uzC4Auy0sAJwsa2Ug==
+      - FRONTEND_URL=http://localhost:3000
+      - PORT=4000
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:4000/api
+        - NEXT_PUBLIC_SUPABASE_URL=https://sccgosstjybtzqqyuvil.supabase.co
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_hJsryPB7sI1bP3SOpBNQgQ_VjfW_pn8
+    container_name: todo_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
 
 volumes:
   postgres_data:

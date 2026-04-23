@@ -60,27 +60,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Bootstrap: restore session on mount ────────────────────────
   useEffect(() => {
     const restoreSession = async () => {
-      // 1. Try to restore a custom-auth session from localStorage
-      const savedToken = getSavedToken();
-      const savedUser  = getSavedUser();
+      try {
+        // 1. Try to restore a custom-auth session from localStorage
+        const savedToken = getSavedToken();
+        const savedUser  = getSavedUser();
 
-      if (savedToken && savedUser && savedUser.authMethod === 'CUSTOM') {
-        setToken(savedToken);
-        setUser(savedUser);
-        setAuthMethod('CUSTOM');
+        if (savedToken && savedUser && savedUser.authMethod === 'CUSTOM') {
+          setToken(savedToken);
+          setUser(savedUser);
+          setAuthMethod('CUSTOM');
+          return;
+        }
+
+        // 2. Try to restore a Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await handleSupabaseSession(session.access_token);
+          return;
+        }
+      } catch (err: any) {
+        console.error('Session restoration failed:', err.message);
+      } finally {
         setIsLoading(false);
-        return;
       }
-
-      // 2. Try to restore a Supabase session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await handleSupabaseSession(session.access_token);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(false);
     };
 
     restoreSession();
@@ -121,6 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthMethod('SUPABASE');
     } catch (err: any) {
       console.error('Supabase session sync failed:', err.message);
+      // If sync fails (e.g. backend down or invalid secret), 
+      // we should probably clear the local session to avoid a "ghost" state
+      clearSession();
+      setToken(null);
+      setUser(null);
+      setAuthMethod(null);
     }
   }, []);
 
@@ -130,7 +138,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     setAuthMethod(null);
-  }, []);
+    // Force redirect to login on sign out or cleared session
+    if (typeof window !== 'undefined' && window.location.pathname === '/dashboard') {
+      router.push('/login');
+    }
+  }, [router]);
 
   // ── Custom: Register ────────────────────────────────────────────
   const registerCustom = useCallback(async (email: string, password: string) => {

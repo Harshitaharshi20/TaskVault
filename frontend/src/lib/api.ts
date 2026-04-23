@@ -29,11 +29,23 @@ apiClient.interceptors.request.use(
 );
 
 // ─────────────────────────────────────────────────────────────────
-// Response interceptor — surface clean error messages
+// Response interceptor — surface clean error messages & handle 401
 // ─────────────────────────────────────────────────────────────────
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 401 Unauthorized globally
+    if (error.response?.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('authUser');
+        // Only redirect if we're not already on the login/register pages
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+          window.location.href = '/login?error=session_expired';
+        }
+      }
+    }
+
     const message =
       error.response?.data?.message ||
       error.response?.data?.error ||

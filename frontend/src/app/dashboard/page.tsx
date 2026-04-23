@@ -23,7 +23,11 @@ export default function DashboardPage() {
       const data = await todosApi.getAll();
       setTodos(data);
     } catch (err: any) {
-      toast.error('Failed to load todos');
+      if (err.message.includes('Network Error')) {
+        toast.error('Cannot connect to the backend. Please check if the server is running on port 4000.', { duration: 6000 });
+      } else {
+        toast.error('Failed to load tasks from your vault');
+      }
     } finally {
       setLoading(false);
     }
