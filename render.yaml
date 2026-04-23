@@ -21,10 +21,7 @@ services:
       - key: SUPABASE_JWT_SECRET
         sync: false # Set this in Render dashboard
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: taskvault-frontend
-          property: host
+        value: https://taskvault-frontend.onrender.com
 
   # ─────────────────────────────────────────────────────────────────
   # 2. Frontend Service (Next.js)
@@ -38,11 +35,7 @@ services:
     startCommand: npm run start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: taskvault-backend
-          property: host
-        value: ${HOST}/api
+        value: https://taskvault-backend.onrender.com/api
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false # Set this in Render dashboard
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -54,5 +47,3 @@ databases:
   # ─────────────────────────────────────────────────────────────────
   - name: taskvault-db
     plan: free
-    databaseName: todo_db
-    user: postgres
