@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-primary: #6366f1;
+  --brand-secondary: #a855f7;
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply font-sans antialiased text-slate-900;
+    background: var(--bg-gradient);
+    min-height: 100vh;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-indigo-500 rounded;
+  }
+}
+
+@layer components {
+  /* ── Glassmorphism ── */
+  .glass-card {
+    @apply backdrop-blur-md bg-white/70 border border-white/40 shadow-xl;
+    border-radius: 24px;
+  }
+
+  .glass-nav {
+    @apply backdrop-blur-lg bg-white/60 border-b border-white/30 sticky top-0 z-50;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-gradient-to-r from-indigo-600 to-violet-600
+           hover:from-indigo-700 hover:to-violet-700
+           text-white font-semibold rounded-2xl
+           px-6 py-3 text-sm
+           shadow-lg shadow-indigo-200
+           transform transition-all duration-200
+           active:scale-95
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-white hover:bg-slate-50
+           text-slate-700 font-semibold rounded-2xl
+           px-6 py-3 text-sm
+           border border-slate-200
+           shadow-sm transition-all duration-200
+           active:scale-95;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2
+           bg-red-50 hover:bg-red-100
+           text-red-600 font-semibold rounded-xl
+           px-3 py-2 text-sm
+           transition-all duration-200;
+  }
+
+  /* ── Inputs ── */
+  .input-field {
+    @apply w-full px-4 py-3 text-sm
+           bg-white/50 border border-slate-200 rounded-2xl
+           placeholder:text-slate-400 text-slate-800
+           focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500
+           transition-all duration-200;
+  }
+
+  .label-text {
+    @apply block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1;
+  }
+
+  /* ── Animations ── */
+  .animate-in {
+    animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

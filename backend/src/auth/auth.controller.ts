@@ -1,0 +1,64 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { RegisterDto, LoginDto, SupabaseAuthDto } from './dto/auth.dto';
+import { CombinedAuthGuard } from './guards/combined-auth.guard';
+import { Request } from 'express';
+
+interface AuthenticatedRequest extends Request {
+  user: { id: string; email: string; authMethod: string };
+}
+
+/**
+ * AuthController — all routes under /api/auth
+ *
+ * Public routes (no auth required):
+ *   POST /api/auth/register      — Custom email/password registration
+ *   POST /api/auth/login         — Custom email/password login
+ *   POST /api/auth/supabase      — Supabase JWT exchange (provision user in DB)
+ *
+ * Protected routes (auth required):
+ *   GET  /api/auth/profile       — Get current user profile
+ */
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  // ─── Public: Custom Registration ────────────────────────────────
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  // ─── Public: Custom Login ────────────────────────────────────────
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
+
+  // ─── Public: Supabase Token Exchange ────────────────────────────
+  // Call this once after a successful Supabase sign-in to ensure
+  // the user record exists in our backend database.
+  @Post('supabase')
+  @HttpCode(HttpStatus.OK)
+  async supabaseSignIn(@Body() dto: SupabaseAuthDto) {
+    return this.authService.supabaseSignIn(dto.supabaseToken);
+  }
+
+  // ─── Protected: Get Profile ─────────────────────────────────────
+  @Get('profile')
+  @UseGuards(CombinedAuthGuard)
+  async getProfile(@Req() req: AuthenticatedRequest) {
+    return this.authService.getProfile(req.user.id);
+  }
+}
