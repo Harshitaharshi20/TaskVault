@@ -26,15 +26,24 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
     configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    const supabaseJwtSecret = configService.get<string>('SUPABASE_JWT_SECRET');
-    if (!supabaseJwtSecret) {
+    let secret = configService.get<string>('SUPABASE_JWT_SECRET');
+    if (!secret) {
       throw new Error('SUPABASE_JWT_SECRET is not defined in environment variables');
     }
+
+    // Clean up accidental quotes from env vars
+    secret = secret.replace(/^"|"$|^'|'$/g, '');
+
+    // Supabase JWT secrets are typically Base64 encoded.
+    // We must pass the decoded Buffer to jsonwebtoken to correctly verify the HS256 signature.
+    // If it's a legacy or custom string that isn't Base64, we'll fall back to the raw string.
+    const isBase64 = secret.endsWith('=') || /^[a-zA-Z0-9+/]+={0,2}$/.test(secret);
+    const secretOrKey = isBase64 ? Buffer.from(secret, 'base64') : secret;
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: supabaseJwtSecret,
+      secretOrKey: secretOrKey,
       algorithms: ['HS256'],
     });
   }

@@ -28,7 +28,14 @@ export class CombinedAuthGuard extends AuthGuard(['jwt', 'supabase-jwt']) {
    * passport-jwt throws when a strategy fails, so we catch those
    * errors and only surface a clean 401 if ALL strategies fail.
    */
-  handleRequest(err: any, user: any, _info: any) {
+  handleRequest(err: any, user: any, info: any) {
+    if (err || info || !user) {
+      console.error('CombinedAuthGuard rejection:', {
+        err,
+        info: info ? info.message || info.name || info : null,
+      });
+    }
+
     if (err || !user) {
       throw new UnauthorizedException(
         'Authentication failed: invalid or missing token. ' +
