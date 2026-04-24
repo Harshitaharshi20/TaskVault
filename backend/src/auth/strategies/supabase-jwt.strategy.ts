@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { passportJwtSecret } from 'jwks-rsa';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface SupabaseJwtPayload {
@@ -17,10 +18,8 @@ export interface SupabaseJwtPayload {
 /**
  * SupabaseJwtStrategy — validates JWTs issued by Supabase Auth.
  *
- * Supabase signs its JWTs with the project's JWT_SECRET found at:
- * Supabase Dashboard → Project Settings → API → JWT Settings → JWT Secret
- *
- * Strategy name: 'supabase-jwt' (referenced in CombinedAuthGuard)
+ * Uses asymmetric verification via JWKS (JSON Web Key Set).
+ * Endpoint: https://<project-id>.supabase.co/auth/v1/.well-known/jwks.json
  */
 @Injectable()
 export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jwt') {
@@ -28,10 +27,21 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
     configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
+    const supabaseUrl = configService.get<string>('SUPABASE_URL');
+    if (!supabaseUrl) {
+      throw new Error('SUPABASE_URL is not defined in environment variables');
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('SUPABASE_JWT_SECRET'),
+      secretOrKeyProvider: passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
+      }),
+      algorithms: ['RS256'],
     });
   }
 

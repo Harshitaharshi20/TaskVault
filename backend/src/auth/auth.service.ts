@@ -87,51 +87,7 @@ export class AuthService {
     };
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // SUPABASE AUTH: Exchange Supabase token for a backend user profile
-  // This endpoint is called ONCE after Supabase sign-in to ensure
-  // the user exists in our Postgres DB.
-  // ─────────────────────────────────────────────────────────────────
-  async supabaseSignIn(supabaseToken: string) {
-    const supabaseSecret = this.config.get<string>('SUPABASE_JWT_SECRET');
 
-    if (!supabaseSecret) {
-      throw new BadRequestException('Supabase JWT secret not configured on server');
-    }
-
-    let payload: SupabaseJwtPayload;
-    try {
-      payload = jwt.verify(supabaseToken, supabaseSecret) as SupabaseJwtPayload;
-    } catch (err) {
-      throw new UnauthorizedException('Invalid or expired Supabase token');
-    }
-
-    if (payload.aud !== 'authenticated') {
-      throw new UnauthorizedException('Invalid Supabase token audience');
-    }
-
-    // Upsert: create user if first Supabase login, otherwise just fetch
-    const user = await this.prisma.user.upsert({
-      where: { supabaseId: payload.sub },
-      create: {
-        email: payload.email,
-        supabaseId: payload.sub,
-        authMethod: 'SUPABASE',
-      },
-      update: {
-        // Update email in case it changed in Supabase
-        email: payload.email,
-      },
-      select: { id: true, email: true, authMethod: true, createdAt: true },
-    });
-
-    return {
-      message: 'Supabase sign-in successful',
-      user,
-      // The frontend should continue using the Supabase token directly
-      // for subsequent API calls — no separate backend token is issued.
-    };
-  }
 
   // ─────────────────────────────────────────────────────────────────
   // Get the current user's profile (works for both auth methods)

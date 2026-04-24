@@ -47,12 +47,16 @@ export class AuthController {
   }
 
   // ─── Public: Supabase Token Exchange ────────────────────────────
-  // Call this once after a successful Supabase sign-in to ensure
-  // the user record exists in our backend database.
+  // This endpoint is now protected by CombinedAuthGuard which uses
+  // the JWKS strategy to verify the token and auto-provision the user.
   @Post('supabase')
+  @UseGuards(CombinedAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async supabaseSignIn(@Body() dto: SupabaseAuthDto) {
-    return this.authService.supabaseSignIn(dto.supabaseToken);
+  async supabaseSignIn(@Req() req: AuthenticatedRequest) {
+    return {
+      message: 'Supabase sign-in successful',
+      user: req.user,
+    };
   }
 
   // ─── Protected: Get Profile ─────────────────────────────────────
