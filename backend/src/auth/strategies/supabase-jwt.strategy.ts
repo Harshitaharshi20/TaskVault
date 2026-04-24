@@ -59,16 +59,35 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
     });
 
     if (!user) {
-      // First time this Supabase user hits our backend — create them
-      user = await this.prisma.user.create({
-        data: {
-          email: payload.email,
-          supabaseId: payload.sub,
-          authMethod: 'SUPABASE',
-        },
-        select: { id: true, email: true, authMethod: true },
+      if (!payload.email) {
+        throw new UnauthorizedException('Email is required for authentication');
+      }
+
+      // Check if email already exists (e.g. from Custom Auth)
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: payload.email },
       });
-      console.log(`🆕 Auto-provisioned Supabase user: ${payload.email}`);
+
+      if (existingUser) {
+        // Link the Supabase ID to the existing account
+        user = await this.prisma.user.update({
+          where: { email: payload.email },
+          data: { supabaseId: payload.sub },
+          select: { id: true, email: true, authMethod: true },
+        });
+        console.log(`🔗 Linked Supabase user to existing account: ${payload.email}`);
+      } else {
+        // First time this Supabase user hits our backend — create them
+        user = await this.prisma.user.create({
+          data: {
+            email: payload.email,
+            supabaseId: payload.sub,
+            authMethod: 'SUPABASE',
+          },
+          select: { id: true, email: true, authMethod: true },
+        });
+        console.log(`🆕 Auto-provisioned Supabase user: ${payload.email}`);
+      }
     }
 
     return user; // Attached to request.user

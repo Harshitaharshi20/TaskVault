@@ -126,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthMethod('SUPABASE');
     } catch (err: any) {
       console.error('Supabase session sync failed:', err.message);
+      toast.error(err.message || 'Session sync failed. Please log in again.');
       // If sync fails (e.g. backend down or invalid secret), 
       // we should probably clear the local session to avoid a "ghost" state
       clearSession();
