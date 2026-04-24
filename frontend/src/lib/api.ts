@@ -19,12 +19,9 @@ apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken');
-      if (token) {
-        // Only inject if not already explicitly set in the request config
-        const hasAuth = config.headers.Authorization || config.headers.authorization || (config.headers.has && config.headers.has('Authorization'));
-        if (!hasAuth) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+      // Do not inject the local token if we are syncing a new Supabase token
+      if (token && !config.url?.includes('/auth/supabase')) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
     }
     return config;
