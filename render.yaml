@@ -21,7 +21,7 @@ services:
       - key: SUPABASE_JWT_SECRET
         sync: false # Set this in Render dashboard
       - key: FRONTEND_URL
-        value: https://taskvault-frontend.onrender.com
+        value: https://taskvault-frontend-8jfh.onrender.com
 
   # ─────────────────────────────────────────────────────────────────
   # 2. Frontend Service (Next.js)
