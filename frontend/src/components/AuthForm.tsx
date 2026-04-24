@@ -81,6 +81,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('error') === 'session_expired') {
         toast.error('Your session has expired. Please log in again.', { id: 'session-expired' });
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
   }, []);

@@ -92,6 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           await handleSupabaseSession(session.access_token);
+          if (typeof window !== 'undefined' && window.location.pathname.includes('/login')) {
+            router.push('/dashboard');
+          }
         }
         if (event === 'SIGNED_OUT') {
           clearLocalAuth();

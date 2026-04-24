@@ -9,7 +9,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 30_000,
+  timeout: 120_000, // Increased for Render cold starts
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -20,7 +20,11 @@ apiClient.interceptors.request.use(
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken');
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        // Only inject if not already explicitly set in the request config
+        const hasAuth = config.headers.Authorization || config.headers.authorization || (config.headers.has && config.headers.has('Authorization'));
+        if (!hasAuth) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     }
     return config;
@@ -40,7 +44,9 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('authUser');
         // Only redirect if we're not already on the login/register pages
-        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+        // and if the request wasn't the initial supabase token sync
+        const isAuthEndpoint = error.config?.url?.includes('/auth/supabase');
+        if (!isAuthEndpoint && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
           window.location.href = '/login?error=session_expired';
         }
       }
@@ -75,7 +81,11 @@ export const authApi = {
    * (or find) the user in our PostgreSQL database.
    */
   supabaseSignIn: async (supabaseToken: string): Promise<{ user: User }> => {
-    const { data } = await apiClient.post<{ user: User }>('/auth/supabase', { supabaseToken });
+    const { data } = await apiClient.post<{ user: User }>(
+      '/auth/supabase', 
+      { supabaseToken },
+      { headers: { Authorization: `Bearer ${supabaseToken}` } }
+    );
     return data;
   },
 

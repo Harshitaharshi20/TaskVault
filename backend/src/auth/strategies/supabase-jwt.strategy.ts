@@ -40,6 +40,7 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
         rateLimit: true,
         jwksRequestsPerMinute: 5,
         jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
+        timeout: 10000, // 10s timeout to prevent hanging
       }),
       algorithms: ['RS256'],
     });
