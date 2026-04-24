@@ -40,9 +40,10 @@ export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jw
   }
 
   async validate(payload: SupabaseJwtPayload) {
+    console.log('Decoded Supabase Payload:', payload);
     // Supabase tokens have aud: 'authenticated'
     if (payload.aud !== 'authenticated') {
-      throw new UnauthorizedException('Invalid Supabase token audience');
+      return false; // Return false instead of throwing to let the next strategy try
     }
 
     // Find or auto-provision user in our DB on first Supabase login

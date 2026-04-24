@@ -32,9 +32,10 @@ export class CustomJwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: CustomJwtPayload) {
+    console.log('Decoded Custom Payload:', payload);
     // Extra check: only accept tokens issued for CUSTOM auth users
     if (payload.authMethod !== 'CUSTOM') {
-      throw new UnauthorizedException('Invalid token type for this strategy');
+      return false; // Return false instead of throwing to let the next strategy try
     }
 
     const user = await this.prisma.user.findUnique({
@@ -43,7 +44,7 @@ export class CustomJwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User no longer exists');
+      return false; // Return false instead of throwing to let the next strategy try
     }
 
     return user; // Attached to request.user
