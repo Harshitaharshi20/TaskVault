@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { CustomJwtStrategy } from './strategies/custom-jwt.strategy';
 import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
+import { SupabaseHs256Strategy } from './strategies/supabase-hs256.strategy';
 import { CombinedAuthGuard } from './guards/combined-auth.guard';
 
 @Module({
@@ -25,6 +26,7 @@ import { CombinedAuthGuard } from './guards/combined-auth.guard';
     AuthService,
     CustomJwtStrategy,
     SupabaseJwtStrategy,
+    SupabaseHs256Strategy,
     CombinedAuthGuard,
   ],
   controllers: [AuthController],

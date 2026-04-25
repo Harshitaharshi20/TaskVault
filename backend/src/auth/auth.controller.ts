@@ -11,6 +11,7 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, SupabaseAuthDto } from './dto/auth.dto';
 import { CombinedAuthGuard } from './guards/combined-auth.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 
 interface AuthenticatedRequest extends Request {
@@ -29,6 +30,7 @@ interface AuthenticatedRequest extends Request {
  *   GET  /api/auth/profile       — Get current user profile
  */
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

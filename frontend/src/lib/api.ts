@@ -19,9 +19,16 @@ apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken');
-      // Do not inject the local token if we are syncing a new Supabase token
+      
+      // Only inject token if it exists and we are not calling the Supabase sync endpoint
+      // (which handles its own token in the manual headers)
       if (token && !config.url?.includes('/auth/supabase')) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers.set('Authorization', `Bearer ${token}`);
+      }
+      
+      // Debug logging for troubleshooting
+      if (config.url?.includes('/auth/supabase')) {
+        console.log('API - Handshake request:', config.url);
       }
     }
     return config;
@@ -35,15 +42,19 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle 401 Unauthorized globally
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+      const isAuthEndpoint = error.config?.url?.includes('/auth/supabase');
+
+      // ❌ DO NOT clear session for initial Supabase sync
+      if (!isAuthEndpoint) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('authUser');
-        // Only redirect if we're not already on the login/register pages
-        // and if the request wasn't the initial supabase token sync
-        const isAuthEndpoint = error.config?.url?.includes('/auth/supabase');
-        if (!isAuthEndpoint && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+
+        if (
+          typeof window !== 'undefined' &&
+          !window.location.pathname.includes('/login') &&
+          !window.location.pathname.includes('/register')
+        ) {
           window.location.href = '/login?error=session_expired';
         }
       }
@@ -54,6 +65,7 @@ apiClient.interceptors.response.use(
       error.response?.data?.error ||
       error.message ||
       'An unexpected error occurred';
+
     return Promise.reject(new Error(Array.isArray(message) ? message.join(', ') : message));
   },
 );
@@ -77,12 +89,19 @@ export const authApi = {
    * Sends the Supabase JWT to the backend so it can provision
    * (or find) the user in our PostgreSQL database.
    */
-  supabaseSignIn: async (supabaseToken: string): Promise<{ user: User }> => {
-    const { data } = await apiClient.post<{ user: User }>(
-      '/auth/supabase', 
-      { supabaseToken },
-      { headers: { Authorization: `Bearer ${supabaseToken}` } }
+  supabaseSignIn: async (supabaseToken: string) => {
+    console.log('API CALL - supabaseSignIn with token:', supabaseToken.substring(0, 15) + '...');
+    const { data } = await apiClient.post(
+      '/auth/supabase',
+      {}, // ✅ EMPTY BODY
+      {
+        headers: {
+          Authorization: `Bearer ${supabaseToken}`, // ✅ ONLY HERE
+        },
+      }
     );
+    console.log('API CALL - Response from /auth/supabase:', data);
+
     return data;
   },
 

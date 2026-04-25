@@ -18,7 +18,7 @@ import { AuthGuard } from '@nestjs/passport';
  * Usage:  @UseGuards(CombinedAuthGuard) on any controller / route.
  */
 @Injectable()
-export class CombinedAuthGuard extends AuthGuard(['jwt', 'supabase-jwt']) {
+export class CombinedAuthGuard extends AuthGuard(['jwt', 'supabase-hs256', 'supabase-jwks']) {
   canActivate(context: ExecutionContext) {
     return super.canActivate(context);
   }
@@ -30,17 +30,14 @@ export class CombinedAuthGuard extends AuthGuard(['jwt', 'supabase-jwt']) {
    */
   handleRequest(err: any, user: any, info: any) {
     if (err || info || !user) {
-      console.error('CombinedAuthGuard rejection:', {
-        err,
+      const details = {
+        err: err ? err.message || err : null,
         info: info ? info.message || info.name || info : null,
-      });
-    }
-
-    if (err || !user) {
-      throw new UnauthorizedException(
-        'Authentication failed: invalid or missing token. ' +
-        'Please provide a valid Bearer token (custom JWT or Supabase JWT).',
-      );
+        user: !!user,
+      };
+      // FOR DEBUGGING: Expose the full error details to the frontend toast
+      const errorMessage = `Auth Failed: [Err: ${details.err}] [Info: ${details.info}]`;
+      throw new UnauthorizedException(errorMessage);
     }
     return user;
   }

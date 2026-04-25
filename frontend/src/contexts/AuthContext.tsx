@@ -66,20 +66,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const savedUser  = getSavedUser();
 
         if (savedToken && savedUser && savedUser.authMethod === 'CUSTOM') {
+          console.log('AUTH - Restored custom session');
           setToken(savedToken);
           setUser(savedUser);
           setAuthMethod('CUSTOM');
+          setIsLoading(false);
           return;
         }
 
         // 2. Try to restore a Supabase session
+        // getSession() checks the local storage for an existing session
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
+          console.log('AUTH - Found Supabase session, syncing...');
           await handleSupabaseSession(session.access_token);
-          return;
         }
       } catch (err: any) {
-        console.error('Session restoration failed:', err.message);
+        console.error('AUTH - Session restoration failed:', err.message);
       } finally {
         setIsLoading(false);
       }
@@ -117,24 +120,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Handle a Supabase access token ─────────────────────────────
   const handleSupabaseSession = useCallback(async (accessToken: string) => {
     try {
-      // Provision / fetch user in our backend DB
+      // 1. Validate token
+      if (!accessToken || typeof accessToken !== 'string' || accessToken.trim() === '') {
+        throw new Error('Authentication failed: invalid or missing token.');
+      }
+      
+      console.log('AUTH - Syncing session with backend...');
+
+      // 2. Clear any old session data from localStorage to ensure 
+      // the interceptor doesn't send a stale token if the handshake fails
+      clearSession();
+
+      // 3. Provision / fetch user in our backend DB
       const { user: backendUser } = await authApi.supabaseSignIn(accessToken);
-      // For Supabase users the "token" we store IS the Supabase JWT
+      
+      // 4. Save to localStorage (so API interceptor can find it)
       saveSession(accessToken, backendUser);
+      
+      // 4. Update React state
       setToken(accessToken);
       setUser(backendUser);
       setAuthMethod('SUPABASE');
+      
+      console.log('AUTH - Session synchronized successfully');
     } catch (err: any) {
-      console.error('Supabase session sync failed:', err.message);
-      toast.error(err.message || 'Session sync failed. Please log in again.');
-      // If sync fails (e.g. backend down or invalid secret), 
-      // we should probably clear the local session to avoid a "ghost" state
+      console.error('AUTH - Synchronization failed:', err.message);
+      
+      // Clear everything to prevent broken state
       clearSession();
       setToken(null);
       setUser(null);
       setAuthMethod(null);
+
+      toast.error('Unable to synchronize your session. Please sign in again.');
+      
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        router.push('/login?error=sync_failed');
+      }
     }
-  }, []);
+  }, [router]);
 
   // ── Clear local auth state ──────────────────────────────────────
   const clearLocalAuth = useCallback(() => {

@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { passportJwtSecret } from 'jwks-rsa';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface SupabaseJwtPayload {
@@ -18,33 +19,29 @@ export interface SupabaseJwtPayload {
  * SupabaseJwtStrategy — validates JWTs issued by Supabase Auth.
  *
  * Uses asymmetric verification via JWKS (JSON Web Key Set).
- * Endpoint: https://<project-id>.supabase.co/auth/v1/.well-known/jwks.json
+ * This is more secure as the backend doesn't need to know the JWT Secret.
  */
 @Injectable()
-export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jwt') {
+export class SupabaseJwtStrategy extends PassportStrategy(Strategy, 'supabase-jwks') {
   constructor(
     configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    let secret = configService.get<string>('SUPABASE_JWT_SECRET');
-    if (!secret) {
-      throw new Error('SUPABASE_JWT_SECRET is not defined in environment variables');
+    const supabaseUrl = configService.get<string>('SUPABASE_URL');
+    if (!supabaseUrl) {
+      throw new Error('SUPABASE_URL is not defined in environment variables');
     }
-
-    // Clean up accidental quotes from env vars
-    secret = secret.replace(/^"|"$|^'|'$/g, '');
-
-    // Supabase JWT secrets are typically Base64 encoded.
-    // We must pass the decoded Buffer to jsonwebtoken to correctly verify the HS256 signature.
-    // If it's a legacy or custom string that isn't Base64, we'll fall back to the raw string.
-    const isBase64 = secret.endsWith('=') || /^[a-zA-Z0-9+/]+={0,2}$/.test(secret);
-    const secretOrKey = isBase64 ? Buffer.from(secret, 'base64') : secret;
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secretOrKey,
-      algorithms: ['HS256'],
+      secretOrKeyProvider: passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
+      }),
+      algorithms: ['RS256', 'ES256'], // Supabase JWKS can use RS256 or ES256
     });
   }
 

@@ -84,6 +84,11 @@ export default function AuthForm({ mode }: AuthFormProps) {
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
       }
+      if (urlParams.get('error') === 'sync_failed') {
+        toast.error('Backend synchronization failed. Please try logging in again.', { id: 'sync-failed' });
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   }, []);
 
